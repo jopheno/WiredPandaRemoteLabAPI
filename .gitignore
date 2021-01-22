@@ -3,7 +3,8 @@
 .vscode
 
 # Python cache files
-__pycache__/*
+*.pyo
+*.pyc
 
 # Virtual environment
 venv
@@ -11,3 +12,6 @@ venv
 # Project configuration
 app.cfg
 static/logo.png
+
+# Distribution files
+dist
