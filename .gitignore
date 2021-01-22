@@ -1,5 +1,6 @@
 # VSCode
 .remote
+.vscode
 
 # Python cache files
 __pycache__/*
@@ -9,3 +10,4 @@ venv
 
 # Project configuration
 app.cfg
+static/logo.png
