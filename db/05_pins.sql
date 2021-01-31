@@ -26,3 +26,7 @@ VALUES (3, 1, 'PIN_AB21', 3, 24);
 -- GPIO[3]
 INSERT INTO `device_pins` (`id`, `device`, `port`, `type`, `forward_from`)
 VALUES (4, 1, 'PIN_Y17', 3, 25);
+
+-- GPIO[4]
+INSERT INTO `device_pins` (`id`, `device`, `port`, `type`, `forward_from`)
+VALUES (5, 1, 'PIN_AC21', 3, 26);

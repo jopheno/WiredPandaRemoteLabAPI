@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- INSERTs
 
 INSERT INTO `users` (`login`, `password`, `secret`, `last_logged_in`, `email`, `created`)
-VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', NULL, 1577836800, 'admin@mail.com', 315532800);
+VALUES ('admin', '21232f297a57a5a743894a0e4a801fc3', NULL, 1577836800, 'admin@mail.com', 315532800);
 
 INSERT INTO `users` (`login`, `password`, `secret`, `last_logged_in`, `email`, `created`)
-VALUES ('test', '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08', NULL, 1577901600, 'test@mail.com', 315532800);
+VALUES ('test', '098f6bcd4621d373cade4e832627b4f6', NULL, 1577901600, 'test@mail.com', 315532800);

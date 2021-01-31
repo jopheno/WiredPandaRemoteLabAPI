@@ -46,6 +46,7 @@ def method():
 
 @bp.route('/api/auth_device', methods=["POST"])
 def auth_device():
+    # VirtualHere encrypts the password using MD5
     device_name = str(escape(request.values.get('name', '')))
     device_token_md5 = str(escape(request.values.get('token', '')))
 

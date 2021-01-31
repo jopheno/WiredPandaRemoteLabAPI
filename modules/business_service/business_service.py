@@ -1,12 +1,15 @@
 import mysql.connector
 from modules.db_service.db_service import DBService
+from modules.ldap_service.ldap_service import LDAPService
 from modules.tcp_service.tcp import TcpService
 from modules.tcp_service.client_handler import ClientHandler
+from datetime import datetime
 import hashlib
 import logging
 import secrets
 import config
 import time
+import math
 import os
 
 
@@ -20,6 +23,14 @@ class BusinessService(ClientHandler):
 
         self.__started_at = time.time()
         self.__db_service = DBService(db_info)
+        self.__ldap_service = None
+
+        conf = config.get()
+
+        if conf['LDAP']['ENABLE'] == 'True':
+            self.__ldap_service = LDAPService(conf['LDAP']['URI'], conf['LDAP']['DOMAIN'], conf['LDAP']['HASH_TYPE'], conf['LDAP']['USER'], conf['LDAP']['PASSWORD'])
+
+        self.remove_hangling_connections()
 
         if tcp_info is not None:
             self.__tcp_service = TcpService(tcp_info['host'], tcp_info['port'], self)
@@ -31,6 +42,9 @@ class BusinessService(ClientHandler):
 
         del self.__db_service
     
+    def is_using_ldap(self):
+        return self.__ldap_service != None
+    
     def get_db(self):
         return self.__db_service
     
@@ -38,6 +52,18 @@ class BusinessService(ClientHandler):
         super().register(id, client)
     
     # business methods
+
+    def remove_hangling_connections(self):
+        """
+        This will remove any on-going sessions that are still available in the database
+        """
+
+        logging.info("> Cleaning old-sessions!")
+
+        self.get_db().query("UPDATE `devices` SET `being_used_by`=NULL, `token`='', `using_since`='0';")
+        
+        self.get_db().commit()
+        self.get_db().close()
 
     def get_uptime(self):
         """
@@ -223,24 +249,59 @@ class BusinessService(ClientHandler):
         login -> str: set of 32 characters
         password -> str: set of 64 characters
         """
-        query = ("SELECT u.id, u.secret FROM `users` u WHERE u.login = '{0}' AND u.password = '{1}'")
-
-        self.get_db().query(query, login, password)
-
         user_id = None
         secret_key = None
 
-        try:
-            (user_id, secret_key) = self.get_db().fetch_one()
-        except TypeError as err:
-            self.get_db().commit()
-            self.get_db().close()
-            return None
+        if self.is_using_ldap() and self.__ldap_service.verify(login, password):
+            query = ("SELECT u.id, u.secret FROM `users` u WHERE u.login = '{0}'")
 
-        if user_id is None:
-            self.get_db().commit()
-            self.get_db().close()
-            return None
+            self.get_db().query(query, login)
+
+            try:
+                (user_id, secret_key) = self.get_db().fetch_one()
+            except TypeError as err:
+                self.get_db().commit()
+                self.get_db().close()
+
+            if user_id is None:
+                now = datetime.now()
+                timestamp = math.floor(datetime.timestamp(now))
+
+                # gets basic info
+                info = self.__ldap_service.get_info(login)
+
+                # insert ldap user to database
+                self.get_db().query("INSERT INTO `users` (`login`, `password`, `secret`, `last_logged_in`, `email`, `created`) VALUES ('{0}', 'LDAP', NULL, {2}, '{3}', {2});", login, info['password'], timestamp, info['email'])
+                self.get_db().commit()
+                self.get_db().close()
+                
+                # gets new user id
+                query = ("SELECT u.id, u.secret FROM `users` u WHERE u.login = '{0}'")
+
+                self.get_db().query(query, login)
+
+                try:
+                    (user_id, secret_key) = self.get_db().fetch_one()
+                except TypeError as err:
+                    self.get_db().commit()
+                    self.get_db().close()
+
+        else:
+            query = ("SELECT u.id, u.secret FROM `users` u WHERE u.login = '{0}' AND u.password = '{1}'")
+
+            self.get_db().query(query, login, password)
+
+            try:
+                (user_id, secret_key) = self.get_db().fetch_one()
+            except TypeError as err:
+                self.get_db().commit()
+                self.get_db().close()
+                return None
+
+            if user_id is None:
+                self.get_db().commit()
+                self.get_db().close()
+                return None
         
         if secret_key is None:
             secret_key = os.urandom(8).hex()
@@ -251,22 +312,43 @@ class BusinessService(ClientHandler):
 
         return secret_key
     
-    def log_out(self, token):
+    def log_out(self, user_token, device_id):
         """
         Responsible for validating user token
 
-        token -> str: set of 11 hex characters
+        user_token -> str: set of 11 hex characters
         """
 
-        user_id = self.auth_user(token)
+        user_id = self.auth_user(user_token)
 
         if (user_id is None):
             return False
+        
+        if (device_id is None):
+            return False
 
-        self.get_db().query("UPDATE `devices` SET `being_used_by`=NULL, `token`='' WHERE `being_used_by`={0};", user_id)
+        self.get_db().query("UPDATE `devices` SET `being_used_by`=NULL, `token`='', `using_since`='0' WHERE `id`={0} AND `being_used_by`={1};", device_id, user_id)
         
         self.get_db().commit()
         self.get_db().close()
+
+        self.get_db().query("SELECT COUNT(*) FROM `devices` WHERE `being_used_by`={0}", user_id)
+        
+        device_count = None
+        try:
+            (device_count,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+            return None
+
+        self.get_db().commit()
+        self.get_db().close()
+        
+        # The user is using another device, token will only be disabled
+        # when there is no device left in use by this user.
+        if device_count > 0:
+            return False
 
         self.get_db().query("UPDATE `users` SET `secret`=NULL WHERE `id`={0};", user_id)
         
@@ -275,15 +357,15 @@ class BusinessService(ClientHandler):
 
         return True
 
-    def auth_user(self, token):
+    def auth_user(self, user_token):
         """
         Responsible for validating user token
 
-        token -> str: set of 11 hex characters
+        user_token -> str: set of 11 hex characters
         """
         query = ("SELECT u.id FROM `users` u WHERE u.secret = '{0}'")
 
-        self.get_db().query(query, token)
+        self.get_db().query(query, user_token)
 
         user_id = None
 
@@ -303,7 +385,7 @@ class BusinessService(ClientHandler):
         """
         Get device method type
 
-        device_id -> int: identifier of the device
+        device_type_id -> int: identifier of the device type
         """
 
         results = []
@@ -346,6 +428,27 @@ class BusinessService(ClientHandler):
         
         return device_method
     
+    def get_device_serial_port(self, device_id):
+        """
+        Get device name
+
+        device_id -> int: identifier of the device
+
+        returns serial_port -> str: set of 22 characters
+        """
+
+        self.get_db().query("SELECT serial_port from `devices` d WHERE d.id = {0}", device_id)
+        
+        serial_port = None
+        try:
+            (serial_port,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+            return None
+        
+        return serial_port
+    
     def get_device_name(self, device_id):
         """
         Get device name
@@ -384,7 +487,48 @@ class BusinessService(ClientHandler):
         
         return device_type_id
 
-    
+    def stops_using_at(self, device_type_id):
+        """
+        Get usage time remaining
+
+        device_type_id -> int: identifier of the device type
+        """
+
+        conf = config.get()
+
+        self.get_db().query("SELECT MIN(using_since) FROM `devices` d WHERE d.type = {0}", device_type_id)
+        
+        min_using_since = None
+        try:
+            (min_using_since,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+            return None
+
+        self.get_db().query(
+            "SELECT d.allowed_time FROM `device_types` d WHERE d.id = '{0}'",
+            device_type_id
+        )
+
+        allowed_time = None
+        try:
+            (allowed_time,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+            return None
+
+        timestamp = min_using_since + allowed_time - int(conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"])
+        now = datetime.now()
+
+        if min_using_since == 0 or min_using_since < datetime.timestamp(now):
+            timestamp = datetime.timestamp(now)
+        
+        timestamp = timestamp + int(conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"])
+
+        return timestamp
+
     def auth_device(self, device_name, device_token_md5):
         """
         Verify if device token matches
@@ -433,9 +577,12 @@ class BusinessService(ClientHandler):
         device_type_id -> int: identifier of the device type
         """
 
-        query = ("SELECT d.id FROM `devices` d WHERE d.type = '{0}' AND d.being_used_by is NULL")
+        conf = config.get()
 
-        self.get_db().query(query, device_type_id)
+        self.get_db().query(
+            "SELECT d.id FROM `devices` d WHERE d.type = '{0}' AND d.being_used_by is NULL",
+            device_type_id
+        )
 
         device_id = None
         try:
@@ -443,16 +590,33 @@ class BusinessService(ClientHandler):
         except TypeError as err:
             self.get_db().commit()
             self.get_db().close()
-            return None, None
+            return None, None, None
+
+        self.get_db().query(
+            "SELECT d.allowed_time FROM `device_types` d WHERE d.id = '{0}'",
+            device_type_id
+        )
+
+        allowed_time = None
+        try:
+            (allowed_time,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+            return None, None, None
         
         new_token = secrets.token_hex(6)
+
+        now = datetime.now()
+        timestamp = math.floor(datetime.timestamp(now))
         
-        self.get_db().query("UPDATE `devices` SET `being_used_by`='{0}', `token`='{1}', `method`={2} WHERE `id`={3};", user_id, str(new_token), method_id, device_id)
+        self.get_db().query("UPDATE `devices` SET `being_used_by`='{0}', `token`='{1}', `method`={2}, `using_since`={3} WHERE `id`={4};", user_id, str(new_token), method_id, timestamp, device_id)
         
+        allow_until = timestamp + int(allowed_time) - int(conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"])
         self.get_db().commit()
         self.get_db().close()
         
-        return device_id, new_token
+        return device_id, new_token, allow_until
 
     def get_device_pins(self, device_id):
         """

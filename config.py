@@ -30,10 +30,12 @@ def generate_default():
     conf = configparser.ConfigParser()
     # DEFAULT
     conf['DEFAULT']['DEBUG_MODE'] = "True"
+    conf['DEFAULT']['MINIMUM_WAIT_TIME_IN_SECONDS'] = "300"
 
     # DOMAIN
     conf['DOMAIN'] = {}
     conf['DOMAIN']['NAME'] = "RemoteLab"
+    # TODO: client's auth_method should be controlled by server
     conf['DOMAIN']['AUTH_METHOD'] = "SHA-256"
     conf['DOMAIN']['TCP_HOST'] = "0.0.0.0"
     conf['DOMAIN']['TCP_PORT'] = "7171"
@@ -51,6 +53,15 @@ def generate_default():
     conf['DATABASE']['PORT'] = "3306"
     conf['DATABASE']['SCHEMA'] = "Schema"
     conf['DATABASE']['AUTO'] = "True"
+
+    # LDAP
+    conf['LDAP'] = {}
+    conf['LDAP']['ENABLE'] = "False"
+    conf['LDAP']['HASH_TYPE'] = "PLAIN"
+    conf['LDAP']['USER'] = "None"
+    conf['LDAP']['PASSWORD'] = "None"
+    conf['LDAP']['URI'] = "ldap://ldap.example"
+    conf['LDAP']['DOMAIN'] = "\"dc=somedomain,dc=com\""
 
     # TCP
     conf['TCP'] = {}

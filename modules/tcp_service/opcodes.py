@@ -1,5 +1,8 @@
 import struct
 import time
+import _thread
+import logging
+import config
 from modules.tcp_service import network_message as netmsg
 
 
@@ -24,11 +27,11 @@ def op_parse_start_session(client, imsg):
     msg.add_string(token)
 
     if not authenticated:
+        # device_id zero means error!
         msg.add_unsigned_short(0)
-        msg.add_string("Unknown")
-        msg.add_string("Unknown")
-        msg.add_string("Unknown")
-        msg.add_unsigned_short(0)
+
+        # unable to authenticate error code
+        msg.add_unsigned_byte(0)
         msg.add_string("Unable to authenticate!")
         msg.add_size()
 
@@ -37,21 +40,45 @@ def op_parse_start_session(client, imsg):
 
     device_id = None
     device_token = None
+    allow_until = None
     with client.handler() as handler:
-        device_id, device_token = handler.use(client_id, device_type_id, method_id)
+        device_id, device_token, allow_until = handler.use(client_id, device_type_id, method_id)
     
     if device_id is None:
-        print("There isn't enough devices.", device_type_id, token, device_id)
+        # device_id zero means error!
         msg.add_unsigned_short(0)
-        msg.add_string("Unknown")
-        msg.add_string("Unknown")
-        msg.add_string("Unknown")
-        msg.add_unsigned_short(0)
-        msg.add_string("There isn't enough devices.")
+
+        # not enough devices error code
+        msg.add_unsigned_byte(1)
+
+        with client.handler() as handler:
+            finishes_at = handler.stops_using_at(device_type_id)
+
+        from datetime import datetime
+        
+        now = datetime.now()
+        timestamp = datetime.timestamp(now)
+        seconds = finishes_at - timestamp
+
+        # adds one more second (this will ensure that the minimum
+        # time of conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"]
+        # will be respected)
+        seconds = seconds + 1
+
+        import math
+
+        minutes = math.floor(seconds / 60)
+
+        msg.add_string("Once there isn't an available slot, would you like to enter a queue?\nThe estimated wait time is " + str(minutes) + " minutes.")
         msg.add_size()
+
+        print("There isn't enough devices.", device_type_id, token, device_id)
 
         client.send(msg)
         return None
+    
+    client.set_connected(True)
+    client.set_device_id(device_id)
 
     with client.handler() as handler:
         pins = handler.get_device_pins(device_id)
@@ -61,6 +88,8 @@ def op_parse_start_session(client, imsg):
 
     with client.handler() as handler:
         device_name = handler.get_device_name(device_id)
+
+    conf = config.get()
     
     # add device_id
     msg.add_unsigned_short(device_id)
@@ -70,6 +99,8 @@ def op_parse_start_session(client, imsg):
     msg.add_string(method)
     msg.add_string(device_name)
     msg.add_string(device_token)
+    msg.add_unsigned_int(int(conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"]))
+    msg.add_unsigned_long(allow_until)
     
     # number of pins
     msg.add_unsigned_short(len(pins))
@@ -82,6 +113,9 @@ def op_parse_start_session(client, imsg):
     msg.add_size()
 
     client.send(msg)
+
+    # starts client speak thread
+    client.tx_thread = _thread.start_new_thread(client.client_speak, ())
 
 # TODO: a possible implementation is to wait for a
 # possible reconnection in the next minute and

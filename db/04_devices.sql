@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `devices` (
   `being_used_by` int(11) DEFAULT NULL,
   `token` char(12) DEFAULT NULL,
   `serial_port` char(22) DEFAULT NULL,
+  `using_since` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8;
 
@@ -14,4 +15,4 @@ ALTER TABLE `devices` ADD FOREIGN KEY (`method`) REFERENCES `device_type_methods
 -- INSERTs
 
 INSERT INTO `devices` (`type`, `method`, `being_used_by`, `token`, `serial_port`)
-VALUES (1, 1, NULL, '', '');
+VALUES (1, 1, NULL, '', '/dev/ttyUSB0');
