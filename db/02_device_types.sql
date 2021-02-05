@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS `device_types` (
 -- INSERTs
 
 INSERT INTO `device_types` (`name`, `description`, `allowed_time`)
-VALUES ('DE2-115', 'Kit DE2-115 com 55 portas disponíveis', 1800);
+VALUES ('DE2-115', 'Kit DE2-115 com 55 portas disponíveis', 45);

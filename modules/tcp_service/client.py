@@ -5,6 +5,7 @@ import struct
 import time
 import config
 import serial
+from datetime import datetime
 from modules.tcp_service.opcodes import op_resolve as tcp_op_resolve
 from modules.serial_service.opcodes import op_resolve as serial_op_resolve
 from modules.tcp_service import network_message as netmsg
@@ -25,6 +26,8 @@ class Client:
         self.__connected = False
         self.__lastMessageReceived = time.time()
         self.__serial_outgoing_messages = []
+        self.__is_in_after_time = False
+        self.__after_timestamp = 0
 
         self.rx_thread = _thread.start_new_thread(self.client_listen, ())
         self.tx_thread = None
@@ -39,6 +42,24 @@ class Client:
             return False
         
         return True
+    
+    def set_in_after_time(self, boolean):
+        self.__is_in_after_time = boolean
+        now = datetime.now()
+        self.__after_timestamp = int(datetime.timestamp(now))
+    
+    def is_in_after_time(self):
+        return self.__is_in_after_time
+    
+    def have_after_time_ended(self):
+        conf = config.get()
+        now = datetime.now()
+        timestamp = int(datetime.timestamp(now))
+
+        if ((timestamp - self.__after_timestamp) > int(conf["DEFAULT"]["MINIMUM_WAIT_TIME_IN_SECONDS"])):
+            return True
+
+        return False
     
     def set_connected(self, connected):
         self.__connected = connected
