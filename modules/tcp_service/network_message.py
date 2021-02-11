@@ -1,4 +1,5 @@
 import struct
+import logging
 
 
 class NetworkOutgoingMessage:
@@ -43,6 +44,10 @@ class NetworkOutgoingMessage:
         self.byteArray[0:0] = len(self.byteArray).to_bytes(length=4, byteorder='big')
     
     def add_size_after_header(self):
+        maximum_message_size = 1024
+        if len(self.byteArray) > maximum_message_size:
+            logging.error("message is bigger than the permitted amount (" + str(int(len(self.byteArray))) + "/" + str(int(maximum_message_size)) + ")")
+
         size_without_header = len(self.byteArray) - 10
         self.byteArray[10:10] = size_without_header.to_bytes(length=4, byteorder='big')
     

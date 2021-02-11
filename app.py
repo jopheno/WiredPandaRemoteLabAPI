@@ -63,4 +63,9 @@ if __name__ == "__main__":
 
     debug = True if conf["DEFAULT"]["DEBUG_MODE"] == "True" else False
 
-    app.run('0.0.0.0', port=8081, debug=False)
+    if debug:
+        app.run('0.0.0.0', port=8081, debug=False)
+    else:
+        serve(app, listen='0.0.0.0:8081', threads=1, url_scheme='http', connection_limit=50)
+        logger = logging.getLogger('waitress')
+        logger.setLevel(logging.DEBUG)

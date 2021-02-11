@@ -315,7 +315,7 @@ def op_parse_io_info(client, imsg):
     msg = netmsg.NetworkOutgoingMessage(1)
     msg.add_header()
 
-    msg.add_unsigned_short(int(latency/4))
+    msg.add_unsigned_short(int(latency))
     msg.add_unsigned_short(len(info_to_send))
 
     for inf in info_to_send:

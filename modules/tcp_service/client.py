@@ -112,7 +112,6 @@ class Client:
     
     def client_speak(self):
         print("> Allocating Arduino!")
-        count = 0
         msg_size = 0
         waiting_for_message = False
         waiting_for_message_size = 0
@@ -129,10 +128,10 @@ class Client:
             )
             return False
 
-        ser = serial.Serial(serial_port, baudrate = 9600, timeout = 1, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
+        ser = serial.Serial(serial_port, baudrate = 115200, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
         #ser = serial.Serial(serial_port, baudrate = 9600, timeout = 1)
-        ser.write_timeout = 0.5
-        ser.read_timeout = 1
+        #ser.write_timeout = 2
+        #ser.read_timeout = 4
 
         print('> Waiting for the connection to be ready!')
         time.sleep(1)
@@ -157,7 +156,8 @@ class Client:
             if ser.out_waiting != 0:
                 print('Out_waiting: ', ser.out_waiting)
             if self.__serial_outgoing_messages:
-                print("Sending a message through serial")
+                # Only for debugging purposes (logging contributes increasing latency)
+                # print("Sending a message through serial")
                 msg_to_send = self.__serial_outgoing_messages.pop(0)
 
                 try:
@@ -184,30 +184,21 @@ class Client:
                 waiting_for_message_size = 0
                 waiting_since = 0
             
-            # if a message is being read for more than 500ms, discard
-            if waiting_since != 0 and time.time()-waiting_since > 0.5:
+            # if a message is being read for more than 2000ms, discard
+            if waiting_since != 0 and time.time()-waiting_since > 2:
                 print("DISCARDING!")
                 waiting_for_message_size = 0
                 waiting_since = 0
 
                 # close serial comunication and opens it again
                 ser.close()
-                ser = serial.Serial(serial_port, baudrate = 9600, timeout = 1, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
-                ser.write_timeout = 0.5
-                ser.read_timeout = 1
+                ser = serial.Serial(serial_port, baudrate = 115200, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
+                #ser.write_timeout = 2
+                #ser.read_timeout = 4
 
             if ser.in_waiting == 0:
                 # Sleep for 1 milisecond to avoid CPU overusage.
                 time.sleep(0.001)
-
-            #msg = netmsg.NetworkOutgoingMessage(3)
-            #msg.add_unsigned_long(4)
-            #msg.add_unsigned_long(5)
-            #msg.add_unsigned_byte(3)
-            #msg.add_size()
-            
-            #self.send(msg)
-            count = count + 1
         
         print("> Deallocating Arduino!")
         ser.close()
