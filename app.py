@@ -48,6 +48,7 @@ def init_dev():
     my_app = Flask(__name__)
     my_app.secret_key = conf["FLASK"]["SECRET_KEY"]
     my_app.logger = logging.getLogger(conf["FLASK"]["LOGGER_NAME"])
+    my_app.config['UPLOAD_FOLDER'] = 'downloads'
 
     import routes as routes
     routes.init(my_app)

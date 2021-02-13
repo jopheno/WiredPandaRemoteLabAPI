@@ -13,6 +13,12 @@ import math
 import os
 
 
+# MAJOR Version must be changed when incompatible API changes are made
+MAJOR_VERSION = 0
+# MINOR Version must be changed when new functionalities are added and
+# the system remains working even on older versions
+MINOR_VERSION = 0
+
 class BusinessService(ClientHandler):
     __tcp_service = None
     __db_service = None
@@ -41,7 +47,13 @@ class BusinessService(ClientHandler):
             del self.__tcp_service
 
         del self.__db_service
-    
+
+    def get_version_str(self):
+        return "v" + str(MAJOR_VERSION) + "." + str(MINOR_VERSION)
+
+    def get_version(self):
+        return MAJOR_VERSION, MINOR_VERSION
+
     def is_using_ldap(self):
         return self.__ldap_service != None
     
@@ -124,7 +136,7 @@ class BusinessService(ClientHandler):
         uptime = self.get_uptime()
 
         server_status["status"] = "Online"
-        server_status["version"] = self.__tcp_service.get_version()
+        server_status["version"] = self.get_version_str()
         server_status["domainName"] = conf["DOMAIN"]["NAME"]
         server_status["uptime"] = "{0}d {1}hrs {2}min {3}s".format(uptime["days"], uptime["hours"], uptime["minutes"], uptime["seconds"])
         server_status["devices"] = self.get_devices()

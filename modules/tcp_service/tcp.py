@@ -6,12 +6,6 @@ import logging
 import mysql.connector
 from modules.tcp_service.client import Client
 
-# MAJOR Version must be changed when incompatible API changes are made
-MAJOR_VERSION = 0
-# MINOR Version must be changed when new functionalities are added and
-# the system remains working even on older versions
-MINOR_VERSION = 0
-
 
 class TcpService:
 
@@ -35,9 +29,6 @@ class TcpService:
     def __del__(self):
         self.running = False
         self.get_socket().close()
-
-    def get_version(self):
-        return "v" + str(MAJOR_VERSION) + "." + str(MINOR_VERSION)
 
     def get_socket(self):
         return self.__socket
