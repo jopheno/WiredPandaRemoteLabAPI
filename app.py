@@ -1,4 +1,5 @@
 from flask import Flask, g
+from flaskext.markdown import Markdown
 from waitress import serve
 import config
 from modules import logging as log
@@ -49,6 +50,9 @@ def init_dev():
     my_app.secret_key = conf["FLASK"]["SECRET_KEY"]
     my_app.logger = logging.getLogger(conf["FLASK"]["LOGGER_NAME"])
     my_app.config['UPLOAD_FOLDER'] = 'downloads'
+
+    # Markdown init
+    mark = Markdown(my_app)
 
     import routes as routes
     routes.init(my_app)
