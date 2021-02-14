@@ -85,7 +85,14 @@ class LDAPService():
             'password': None
         }
 
-        ret['email'] = result[1]['mail'][0].decode()
-        ret['password'] = result[1]['userPassword'][1][5:].decode()
+        try:
+            ret['email'] = result[1]['mail'][0].decode()
+        except KeyError:
+            ret['email'] = 'not_found@unifesp.br'
+
+        try:
+            ret['password'] = result[1]['userPassword'][1][5:].decode()
+        except KeyError:
+            ret['password'] = 'not_found'
 
         return ret

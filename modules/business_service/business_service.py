@@ -295,7 +295,7 @@ class BusinessService(ClientHandler):
                 info = self.__ldap_service.get_info(login)
 
                 # insert ldap user to database
-                self.get_db().query("INSERT INTO `users` (`login`, `password`, `last_logged_in`, `email`, `created`) VALUES ('{0}', 'LDAP', {2}, '{3}', {2});", login, info['password'], timestamp, info['email'])
+                self.get_db().query("INSERT INTO `users` (`login`, `password`, `last_logged_in`, `email`, `created`) VALUES ('{0}', 'LDAP', {1}, '{2}', {1});", login, timestamp, info['email'])
                 self.get_db().commit()
                 self.get_db().close()
                 
@@ -534,6 +534,9 @@ class BusinessService(ClientHandler):
             self.get_db().commit()
             self.get_db().close()
             return None
+        
+        if min_using_since is None:
+            min_using_since = 0
 
         allowed_time = self.get_allowed_time_from_device_type(device_type_id)
 
