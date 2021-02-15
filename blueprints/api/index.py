@@ -3,7 +3,7 @@ from __main__ import get_bs
 import logging
 import json
 import config
-from blueprints.api.bp import bp, bp_prefix
+from blueprints.api.bp import bp, bp_prefix, localhost
 
 
 @bp.route('/')
@@ -45,6 +45,7 @@ def method():
         abort(404)
 
 @bp.route('/auth_device', methods=["POST"])
+@localhost
 def auth_device():
     # VirtualHere encrypts the password using MD5
     device_name = str(escape(request.values.get('name', '')))
