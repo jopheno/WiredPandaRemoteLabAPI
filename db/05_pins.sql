@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `device_pins` (
   `device` int(11) NOT NULL,
   `port` char(22) NOT NULL,
   `type` int(1) NOT NULL,
-  `forward_from` int(11) DEFAULT NULL,
+  `forward_from` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8;
 
