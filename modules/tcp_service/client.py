@@ -66,6 +66,9 @@ class Client:
 
     def set_token(self, token):
         self.__token = token
+    
+    def get_addr(self):
+        return '{0}:{1}'.format(self.addr[0], self.addr[1])
 
     def set_id(self, id):
         self.__id = id
@@ -128,7 +131,7 @@ class Client:
             )
             return False
 
-        ser = serial.Serial(serial_port, baudrate = 115200, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
+        ser = serial.Serial(serial_port, baudrate = 250000, parity = serial.PARITY_EVEN, stopbits = serial.STOPBITS_TWO)
         #ser = serial.Serial(serial_port, baudrate = 9600, timeout = 1)
         #ser.write_timeout = 2
         #ser.read_timeout = 4

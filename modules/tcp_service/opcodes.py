@@ -382,8 +382,12 @@ MAP = {
 }
 
 def op_resolve(client, opcode, data):
-    if (MAP[opcode] != None):
-        imsg = netmsg.NetworkIncomingMessage(opcode, data)
-        return MAP[opcode](client, imsg)
+    try:
+        if (MAP[opcode] != None):
+            imsg = netmsg.NetworkIncomingMessage(opcode, data)
+            return MAP[opcode](client, imsg)
+    except KeyError:
+        client.disconnect()
+        logging.info("> Client id {0} ({1}) was disconnected by sending invalid message".format(client.get_id(), client.get_addr()))
     
     return None
