@@ -1,0 +1,263 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Home{% endblock %}
+{% block header %}
+<style>
+    .dot {
+        height: 25px;
+        width: 25px;
+        background-color: #bbb;
+        border-radius: 50%;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+        <h1 class="h2">Devices</h1>
+    </div>
+
+    <div class="modal fade" id="deviceModal" tabindex="-1" role="dialog" aria-labelledby="deviceModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deviceModalLabel"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <input type="hidden" class="form-control" id="device_type_func">
+                        <input type="hidden" class="form-control" id="device_type_id">
+                        <div class="form-group">
+                            <label for="device_type_dropdown" class="col-form-label">Device type:</label>
+                            <div class="dropdown" id="device_type_dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select device type
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% for device_type_name in device_types %}
+                                        <a class="dropdown-item" href="#" data-id="{{ device_types[device_type_name] }}">{{ device_type_name }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="methods_dropdown" class="col-form-label">Method:</label>
+                            <div class="dropdown" id="methods_dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select method
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% for method_name in methods %}
+                                        <a class="dropdown-item" href="#" data-id="{{ methods[method_name] }}">{{ method_name }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="usb_devices_dropdown" class="col-form-label">USB Device:</label>
+                            <div class="dropdown" id="usb_devices_dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select USB device
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    {% for usb_device in usb_devices %}
+                                        <a class="dropdown-item" href="#" data-id="{{ usb_device.path }}">{{ usb_device.path + ' - ' + usb_device.name }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="device_update_button">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card-deck mb-3 text-center">
+            {% for device in devices %}
+            <div class="card mb-4 box-shadow" style="min-width: 270px; max-width: 300px;">
+                <input type="hidden" class="form-control" id="device_id" value="{{device.id}}">
+                <input type="hidden" class="form-control" id="device_type" value="{{device.type}}">
+                <input type="hidden" class="form-control" id="device_method" value="{{device.methods[0]}}">
+                <input type="hidden" class="form-control" id="device_serial_port" value="{{device.serial_port}}">
+                <!--<a id="device_method_id">{{device.methods}}</a>-->
+
+                <div class="card-header">
+                    <div class="container" style="display: flex; justify-content: center;">
+                        <div style="margin-right: 5%; margin-top: 4px;">
+                            <span class="dot" data-toggle="tooltip" data-placement="top"
+                                title="Being used by {{device.being_used_by}}" style="background-color: {% if device.being_used_by is none %} green {% else %} grey {% endif %};">
+                            </span>
+                        </div>
+                        <h4 class="my-0 font-weight-normal">
+                            {% if device.being_used_by is none %}
+                                Available
+                            {% else %}
+                                In-use
+                            {% endif %}
+                        </h4>
+                    </div>
+                </div>
+                <div class="card-header"  style="padding: 0%">
+                    <h4 class="card-title" style="margin-bottom: 0.3rem;">{{"{0} [{1}]".format(device.type, device.id)}}</h4>
+                </div>
+                <div class="card-body">
+                <ul class="list-unstyled mt-1 mb-1">
+                    <div data-toggle="tooltip" data-placement="top" title="USB Port">
+                        <li><span data-feather="share-2" style="width: 16px; height: 16px;"></span> {{device.serial_port}}</li>
+                    </div>
+                    <div data-toggle="tooltip" data-placement="top" title="Allowed time">
+                        <li><span data-feather="clock" style="width: 16px; height: 16px;"></span> {{ (device.allowed_time/60)|round|int }} minutes</li>
+                    </div>
+                    <div data-toggle="tooltip" data-placement="top" title="Being used by {{device.being_used_by}}">
+                        <li><span data-feather="user" style="width: 16px; height: 16px;"></span> {{device.being_used_by}}</li>
+                    </div>
+                    <div data-toggle="tooltip" data-placement="top" title="Pin amount">
+                        <li><span data-feather="bar-chart-2" style="width: 16px; height: 16px;"></span> {{device.pin_amount}}</li>
+                    </div>
+                </ul>
+                <hr>
+                <div class="container">
+                    <div class="row justify-content-md-center">
+                        {% for method in device.methods %}
+                        <div class="col-4">
+                            <!--{{url_for('static', filename=method.lower()+'.png')}}-->
+                            <img src="download/method_{{method.lower()+'.png'}}" width="64px" data-toggle="tooltip" data-placement="top" title="{{method}}"></img>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <hr>
+                <div class="container">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="row">
+                                <button type="button" style="max-width: 32px; max-height: 32px; padding: 0" class="btn btn-lg btn-block btn-outline-primary edit-pins-btn" {% if device.being_used_by is not none %}disabled{% endif %}>
+                                    <span data-feather="bar-chart-2" style="margin-bottom: 4px;"></span>
+                                </button>
+                                <button type="button" style="max-width: 32px; max-height: 32px; padding: 0; margin-top: 0; margin-left: 8px" class="btn btn-lg btn-block btn-outline-primary edit-btn" {% if device.being_used_by is not none %}disabled{% endif %}>
+                                    <span data-feather="edit" style="margin-bottom: 4px;"></span>
+                                </button>
+                                <button type="button" style="max-width: 32px; max-height: 32px; padding: 0; margin-top: 0; margin-left: 8px" class="btn btn-lg btn-block btn-outline-primary delete-btn" {% if device.being_used_by is not none %}disabled{% endif %} {% if device.pin_amount is not none %}disabled{% endif %}>
+                                    <span data-feather="trash" style="margin-bottom: 4px;"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-2 offset-4" style="padding: 0" data-toggle="tooltip" data-placement="top" title="{{device.description}}">
+                            <span data-feather="help-circle" style="width: 32px; height: 32px;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        function update() {
+            var func = $( "#device_type_func" ).val();
+            var id = $( "#device_id" ).val();
+            var device_type = $( ".dropdown-toggle", $("#device_type_dropdown") );
+            console.log("device_type = " + device_type.text() + " | id = " + device_type.data("id"));
+            var method = $( ".dropdown-toggle", $("#methods_dropdown") );
+            console.log("method = " + method.text() + " | id = " + method.data("id"));
+            var usb_device = $( ".dropdown-toggle", $("#usb_devices_dropdown") );
+            console.log("usb_device = " + usb_device.text() + " | id = " + usb_device.data("id"));
+
+            if (id == null || id == "") {
+                id = 0;
+            }
+
+            /*$.ajax({
+                type: func,
+                url: 'devices',
+                data: {"id": id},
+                success: function(data)
+                {
+                    location.reload();
+                },
+                error: function(jqXHR, textStatus, errorThrown)
+                {
+                    alert(jqXHR.responseText);
+                }
+
+            });*/
+        }
+
+        $("#device_update_button").click(update);
+        $(".dropdown-item").click(function() {
+            var dropdown_menu = $( this ).parent().parent();
+
+            $(".dropdown-toggle", dropdown_menu).data("id", $(this).data("id"));
+            $(".dropdown-toggle", dropdown_menu).html($( this ).text());
+        });
+
+        $( ".edit-btn" ).click(function() {
+            // Each individual row
+            var obj = $(this).parents(".card");
+
+            $("#deviceModalLabel").html("Edit device");
+
+            // auto completes serial_port
+            var serial_port = $( "#device_serial_port", obj ).val();
+
+            $(".dropdown-item", $('#usb_devices_dropdown')).each(function () {
+                var current_port = $(this).text();
+                var n = current_port.search(serial_port);
+
+                var card = $(this).parent().parent();
+
+                if (n != -1) {
+                    $(".dropdown-toggle", card).html(current_port);
+                    $(".dropdown-toggle", card).data("id", $(this).data("id"));
+                }
+            });
+
+            // auto completes device_type
+            var device_type = $( "#device_type", obj ).val();
+
+            $(".dropdown-item", $('#device_type_dropdown')).each(function () {
+                var current_port = $(this).text();
+                var n = current_port.search(device_type);
+
+                var card = $(this).parent().parent();
+
+                if (n != -1) {
+                    $(".dropdown-toggle", card).html(device_type);
+                    $(".dropdown-toggle", card).data("id", $(this).data("id"));
+                }
+            });
+
+            // auto completes device_method
+            var method = $( "#device_method", obj ).val();
+            $("#dropdownMenuButton", $('#methods_dropdown')).html(method);
+
+            $(".dropdown-item", $('#methods_dropdown')).each(function () {
+                var current_port = $(this).text();
+                var n = current_port.search(method);
+
+                var card = $(this).parent().parent();
+
+                if (n != -1) {
+                    $(".dropdown-toggle", card).html(method);
+                    $(".dropdown-toggle", card).data("id", $(this).data("id"));
+                }
+            });
+
+            $('#deviceModal').modal('show');
+        });
+
+    });
+</script>
+{% endblock %}

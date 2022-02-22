@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="{{url_for('static', filename='assets/favicon.ico')}}">
+
+    <title>Sign In</title>
+
+    <!-- JQuery -->
+    <script src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
+
+    <script>
+        $(document).ready(function() {
+            $("#signInForm").submit(function(e) {
+                e.preventDefault(); // avoid to execute the actual submit of the form.
+
+                var form = $(this);
+                var url = form.attr('action');
+
+                var username = document.getElementById("username").value;
+                var password = document.getElementById("passwd").value;
+
+                document.getElementById("signInBtn").disabled = true;
+
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    //data: form.serialize(), // serializes the form's elements.
+                    data: {"login": username, "passwd": password},
+                    success: function(data)
+                    {
+                        location.reload();
+                    },
+                    error: function(jqXHR, textStatus, errorThrown)
+                    {
+                        alert(jqXHR.responseText);
+                        document.getElementById("signInBtn").disabled = false;
+                    }
+
+                });
+            });
+        });
+    </script>
+
+    <!-- Bootstrap core CSS -->
+    <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="{{url_for('admin.static', filename='css/signin.css')}}" rel="stylesheet">
+  </head>
+
+  <body class="text-center">
+    <form id="signInForm" class="form-signin" action="login">
+      <img class="mb-4" src="{{url_for('static', filename='assets/logo.png')}}" alt="">
+      <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+      <label for="inputUsername" class="sr-only">Username</label>
+      <input type="text" id="username" class="form-control" placeholder="Username" required autofocus>
+      <label for="inputPassword" class="sr-only">Password</label>
+      <input type="password" id="passwd" class="form-control" placeholder="Password" required>
+      <button id="signInBtn" class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+      <p class="mt-5 mb-3 text-muted">&copy; 2020-2021</p>
+    </form>
+
+  </body>
+</html>

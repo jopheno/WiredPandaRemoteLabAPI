@@ -1,0 +1,156 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Device Methods{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+ <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">Device Methods</h1>
+
+    <button type="button" class="btn btn-secondary new-btn"
+    style="padding-top: 0px;padding-bottom: 2px;padding-right: 5px;padding-left: 5px">
+    New <span data-feather="plus-circle"></span>
+    </button>
+  </div>
+
+    <div class="modal fade" id="deviceMethodsModal" tabindex="-1" role="dialog" aria-labelledby="deviceMethodsModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deviceMethodsModalLabel"></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <input type="hidden" class="form-control" id="device_method_func">
+              <input type="hidden" class="form-control" id="device_method_id">
+              <div class="form-group">
+                <label for="device_method_name" class="col-form-label">Method name:</label>
+                <input type="text" class="form-control" id="device_method_name">
+              </div>
+              <div class="form-group">
+                <label for="device_method_latency" class="col-form-label">Maximum recommended latency:</label>
+                <input type="number" class="form-control" id="device_method_latency">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="device_method_update_button">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Recomended Latency</th>
+            <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device_method in device_methods %}
+                <td id="item_device_method_id">{{device_method.id}}</td>
+                <td id="item_device_method_name">{{device_method.name}}</td>
+                <td id="item_device_method_latency">{{device_method.latency}}</td>
+                <td style="text-align: center;">
+                    <div>
+                        <button type="button" class="btn btn-secondary edit-btn"
+                            style="padding-top: 0px;padding-bottom: 2px;padding-right: 5px;padding-left: 5px">
+                            <span data-feather="edit"></span>
+                        </button>
+                        <button type="button" class="btn btn-secondary delete-btn"
+                            style="padding-top: 0px;padding-bottom: 2px;padding-right: 5px;padding-left: 5px">
+                            <span data-feather="trash"></span>
+                        </button>
+                    </div>
+                </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        function update() {
+            var func = $( "#device_method_func" ).val();
+            var id = $( "#device_method_id" ).val();
+            var name = $( "#device_method_name" ).val();
+            var latency = $( "#device_method_latency" ).val();
+
+            if (id == null || id == "") {
+                id = 0;
+            }
+
+            $.ajax({
+                type: func,
+                url: 'device_methods',
+                data: {"id": id, "name": name, "latency": latency},
+                success: function(data)
+                {
+                    location.reload();
+                },
+                error: function(jqXHR, textStatus, errorThrown)
+                {
+                    alert(jqXHR.responseText);
+                }
+
+            });
+        }
+
+        $("#device_method_update_button").click(update);
+
+        $( ".new-btn" ).click(function() {
+
+            $("#deviceMethodsModalLabel").html("Add new device method");
+            $("#device_method_func").val("PUT");
+            $("#device_method_id").val("");
+            $("#device_method_name").val("");
+            $("#device_method_latency").val("");
+
+            $('#deviceMethodsModal').modal('show');
+
+        });
+        $( ".edit-btn" ).click(function() {
+            // Each individual row
+            var row_obj = $( this ).parent().parent().parent();
+
+            $("#deviceMethodsModalLabel").html("Edit device method");
+            $("#device_method_func").val("PATCH");
+            $("#device_method_id").val($( "#item_device_method_id", row_obj ).html());
+            $("#device_method_name").val($( "#item_device_method_name", row_obj ).html());
+            $("#device_method_latency").val($( "#item_device_method_latency", row_obj ).html());
+
+            $('#deviceMethodsModal').modal('show');
+        });
+        $( ".delete-btn" ).click(function() {
+            // Each individual row
+            var row_obj = $( this ).parent().parent().parent();
+
+            var id = $( "#item_device_method_id", row_obj ).html();
+
+            $.ajax({
+                type: "DELETE",
+                url: 'device_methods',
+                data: {"id": id},
+                success: function(data)
+                {
+                    location.reload();
+                },
+                error: function(jqXHR, textStatus, errorThrown)
+                {
+                    alert(jqXHR.responseText);
+                }
+
+            });
+        });
+
+    });
+</script>
+{% endblock %}

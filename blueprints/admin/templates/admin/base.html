@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="{{url_for('static', filename='assets/favicon.ico')}}">
+
+    <title>
+        {% block title %}Admin Panel{% endblock %}
+    </title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="{{url_for('static', filename='css/bootstrap.min.css')}}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="{{url_for('admin.static', filename='css/dashboard.css')}}" rel="stylesheet">
+
+    {% block header %}
+    {% endblock %}
+  </head>
+
+  <body>
+    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
+      <a class="navbar-brand text-center col-sm-3 col-md-2 mr-0" href="#">Admin Panel</a>
+      <ul class="navbar-nav px-3">
+        <li class="nav-item text-nowrap">
+          <a class="nav-link" href="logout">Sign out</a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+          <div class="sidebar-sticky">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <div class="text-center">
+                  <img class="mb-4" src="{{url_for('static', filename='assets/logo.png')}}" alt="">
+                </div>  
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'home' %} active{% endif %}" href="home">
+                  <span data-feather="home"></span>
+                  Home {% if current_page == 'home' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'logs' %} active{% endif %}" href="logs">
+                  <span data-feather="file"></span>
+                  Logs  {% if current_page == 'logs' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'users' %} active{% endif %}" href="users">
+                  <span data-feather="users"></span>
+                  Users  {% if current_page == 'users' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'uploads' %} active{% endif %}" href="uploads">
+                  <span data-feather="upload"></span>
+                  Uploads  {% if current_page == 'uploads' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'device_types' %} active{% endif %}" href="device_types">
+                  <span data-feather="list"></span>
+                  Device Types  {% if current_page == 'device_types' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'methods' %} active{% endif %}" href="device_methods">
+                  <span data-feather="box"></span>
+                  Methods  {% if current_page == 'methods' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'devices' %} active{% endif %}" href="devices">
+                  <span data-feather="columns"></span>
+                  Devices  {% if current_page == 'devices' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link{% if current_page == 'settings' %} active{% endif %}" href="settings">
+                  <span data-feather="settings"></span>
+                  Settings  {% if current_page == 'settings' %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+          <div id="content">
+            {% block content %}
+            {% endblock %}
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="{{url_for('static', filename='js/jquery.min.js')}}" ></script>
+    <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+    <script>
+      feather.replace()
+    </script>
+
+    {% block scripts %}
+    {% endblock %}
+
+  </body>
+</html>

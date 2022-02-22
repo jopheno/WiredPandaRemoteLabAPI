@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `devices` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8;
 
 ALTER TABLE `devices` ADD FOREIGN KEY (`type`) REFERENCES `device_types`(`id`);
-ALTER TABLE `devices` ADD FOREIGN KEY (`method`) REFERENCES `device_type_methods`(`id`);
+ALTER TABLE `devices` ADD FOREIGN KEY (`method`) REFERENCES `device_methods`(`id`);
 
 -- INSERTs
 

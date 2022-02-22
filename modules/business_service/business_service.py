@@ -14,7 +14,7 @@ import os
 
 
 # MAJOR Version must be changed when incompatible API changes are made
-MAJOR_VERSION = 0
+MAJOR_VERSION = 1
 # MINOR Version must be changed when new functionalities are added and
 # the system remains working even on older versions
 MINOR_VERSION = 0
@@ -172,7 +172,7 @@ class BusinessService(ClientHandler):
 
         methods = {}
 
-        query = ("SELECT t.id, t.name FROM `device_type_methods` t;")
+        query = ("SELECT t.id, t.name FROM `device_methods` t;")
 
         self.get_db().query(query)
 
@@ -268,7 +268,7 @@ class BusinessService(ClientHandler):
 
     def log_in(self, login, password):
         """
-        Responsible for validating user token
+        Responsible for generating user token
 
         login -> str: set of 32 characters
         password -> str: set of 64 characters
@@ -400,13 +400,30 @@ class BusinessService(ClientHandler):
         """
 
         results = []
-        query = ("SELECT m.name, m.latency FROM `device_type_methods` m INNER JOIN (SELECT * FROM `device_types` WHERE `id` = {0}) t ON m.type = t.id")
+        query = ("""
+        SELECT
+            d.method AS METHOD_ID,
+            dm.name AS METHOD_NAME,
+            dm.latency AS METHOD_LATENCY
+
+            FROM `devices` d
+            INNER JOIN (
+                SELECT
+                    id,
+                    name,
+                    latency
+                    
+                    FROM `device_methods`
+            ) dm ON dm.id = d.method
+            WHERE d.type = {0}
+        """)
 
         self.get_db().query(query, device_type_id)
 
         try:
-            for (name, latency) in self.get_db().fetch_all():
+            for (method_id, name, latency) in self.get_db().fetch_all():
                 results.append({
+                    "id": method_id,
                     "name": name,
                     "latency": latency
                 })
@@ -427,7 +444,7 @@ class BusinessService(ClientHandler):
         device_id -> int: identifier of the device
         """
 
-        self.get_db().query("SELECT m.name FROM `device_type_methods` m INNER JOIN (SELECT * FROM `devices` WHERE `id` = {0}) t ON t.method = m.id", device_id)
+        self.get_db().query("SELECT m.name FROM `device_methods` m INNER JOIN (SELECT * FROM `devices` WHERE `id` = {0}) t ON t.method = m.id", device_id)
         
         device_method = None
         try:
@@ -1070,3 +1087,288 @@ class BusinessService(ClientHandler):
         }
 
         return result
+    
+    # ADMIN PANEL
+    
+    def get_device_type_info(self):
+        """
+        Get all device_types
+        """
+
+        device_types = []
+
+        query = ("SELECT t.id, t.name, t.description, t.allowed_time FROM `device_types` t;")
+
+        self.get_db().query(query)
+
+        for (id, name, description, allowed_time) in self.get_db().fetch_all():
+            device_types.append({
+                'id': id,
+                'name': name,
+                'description': description,
+                'allowed_time': allowed_time
+            })
+        
+        self.get_db().commit()
+        self.get_db().close()
+
+        return device_types
+    
+    def get_device_methods_info(self):
+        """
+        Get all device_methods
+        """
+
+        device_methods = []
+
+        query = ("SELECT t.id, t.name, t.latency FROM `device_methods` t;")
+
+        self.get_db().query(query)
+
+        for (id, name, latency) in self.get_db().fetch_all():
+            device_methods.append({
+                'id': id,
+                'name': name,
+                'latency': latency
+            })
+        
+        self.get_db().commit()
+        self.get_db().close()
+
+        return device_methods
+
+    def set_device_type_info(self, device_type_id, column, new_value):
+        if device_type_id == 0:
+            return False
+
+        if column is None:
+            return False
+
+        if new_value is None:
+            return False
+        
+        self.get_db().query("UPDATE `device_types` SET `{1}`='{2}' WHERE `id`={0};".format(device_type_id, column, new_value))
+
+        return True
+
+    def set_device_type_name(self, device_type_id, name):
+        return self.set_device_type_info(device_type_id, 'name', name)
+
+    def set_device_type_description(self, device_type_id, desc):
+        return self.set_device_type_info(device_type_id, 'description', desc)
+
+    def set_device_type_allowed_time(self, device_type_id, allowed_time):
+        return self.set_device_type_info(device_type_id, 'allowed_time', allowed_time)
+    
+    def save_device_type_config(self):
+        self.get_db().commit()
+        self.get_db().close()
+
+        return True
+    
+    def add_device_type(self, name, description, allowed_time):
+        if name is None or not str(name):
+            return False
+        if description is None or not str(description):
+            return False
+        if allowed_time is None or not int(allowed_time):
+            return False
+        
+        self.get_db().query("INSERT INTO `device_types` (`name`, `description`, `allowed_time`) VALUES ('{0}', '{1}', {2});".format(name, description, allowed_time))
+        self.get_db().commit()
+        self.get_db().close()
+        return True
+    
+    def remove_device_type(self, device_type_id):
+        if device_type_id is None or not int(device_type_id):
+            return False
+        
+        self.get_db().query("DELETE FROM `device_types` WHERE `id` = {0};".format(device_type_id))
+        self.get_db().commit()
+        self.get_db().close()
+
+        return True
+    
+    def get_devices_full_info(self):
+        """
+        Get all devices with full info about device type as well
+        """
+
+        device_types = []
+
+        query = ("""
+            SELECT
+                d.id AS DEVICE_ID,
+                dt.name AS DEVICE_TYPE_NAME,
+                dt.description AS DEVICE_DESCRIPTION,
+                dt.allowed_time AS ALLOWED_TIME,
+                dtm.name AS METHOD_NAME,
+                d.serial_port AS SERIAL_PORT,
+                u.login AS BEING_USED_BY,
+                d.using_since AS USING_SINCE,
+                dcp.PIN_AMOUNT AS PIN_AMOUNT
+                    FROM `devices`
+            d INNER JOIN (
+                SELECT
+                    id,
+                    name
+                        FROM `device_methods`
+            ) dtm ON d.method = dtm.id
+            INNER JOIN (
+                SELECT
+                    id,
+                    name,
+                    description,
+                    allowed_time
+                        FROM `device_types`
+            ) dt ON d.type = dt.id
+            LEFT JOIN (
+                SELECT
+                    id,
+                    login
+                        FROM `users`
+            ) u ON d.being_used_by = u.id
+            LEFT JOIN (
+                SELECT
+                    dp.device,
+                    COUNT(*) AS PIN_AMOUNT
+                        FROM (
+                            SELECT
+                                id,
+                                device
+                                    FROM `device_pins`
+                        ) dp
+            ) dcp ON d.id = dcp.device;
+        """)
+
+        self.get_db().query(query)
+
+        for (id, device_type_name, device_type_desc, device_type_allowed_time, device_method, serial_port, being_used_by, using_since, pin_amount) in self.get_db().fetch_all():
+            device_types.append({
+                'id': id,
+                'type': device_type_name,
+                'description': device_type_desc,
+                'allowed_time': device_type_allowed_time,
+                'methods': [device_method],
+                'serial_port': serial_port,
+                'being_used_by': being_used_by,
+                'using_since': using_since,
+                'pin_amount': pin_amount,
+            })
+        
+        self.get_db().commit()
+        self.get_db().close()
+
+        return device_types
+
+    def set_device_method_info(self, device_method_id, column, new_value):
+        if device_method_id == 0:
+            return False
+
+        if column is None:
+            return False
+
+        if new_value is None:
+            return False
+        
+        self.get_db().query("UPDATE `device_methods` SET `{1}`='{2}' WHERE `id`={0};".format(device_method_id, column, new_value))
+
+        return True
+
+    def set_device_method_name(self, device_method_id, name):
+        return self.set_device_method_info(device_method_id, 'name', name)
+
+    def set_device_method_latency(self, device_method_id, latency):
+        return self.set_device_method_info(device_method_id, 'latency', latency)
+    
+    def save_device_method_config(self):
+        self.get_db().commit()
+        self.get_db().close()
+
+        return True
+    
+    def add_device_method(self, name, latency):
+        if name is None or not str(name):
+            return False
+        if latency is None or not int(latency):
+            return False
+        
+        self.get_db().query("INSERT INTO `device_methods` (`name`, `latency`) VALUES ('{0}', {1});".format(name, latency))
+        self.get_db().commit()
+        self.get_db().close()
+        return True
+    
+    def remove_device_method(self, device_method_id):
+        if device_method_id is None or not int(device_method_id):
+            return False
+        
+        self.get_db().query("DELETE FROM `device_methods` WHERE `id` = {0};".format(device_method_id))
+        self.get_db().commit()
+        self.get_db().close()
+
+        return True
+
+    def update_user_access(self, user_id, access_level):
+        if user_id == 0:
+            return False
+
+        if access_level is None:
+            return False
+        
+        self.get_db().query("UPDATE `users` SET `access_level`={1} WHERE `id`={0};".format(user_id, access_level))
+        self.get_db().commit()
+        self.get_db().close()
+
+        return True
+
+    def is_admin(self, user_token):
+        """
+        Returns whether user is admin
+
+        user_token -> str: set of 11 hex characters
+        """
+
+        user_id = self.auth_user(user_token)
+
+        if user_id is None:
+            return False
+
+        access_level = None
+        
+        query = ("SELECT u.access_level FROM `users` u WHERE u.id = '{0}'")
+
+        self.get_db().query(query, user_id)
+        try:
+            (access_level,) = self.get_db().fetch_one()
+        except TypeError as err:
+            self.get_db().commit()
+            self.get_db().close()
+        
+        return access_level > 1
+
+    def get_users(self):
+        """
+        Get all users
+        """
+
+        users = []
+
+        query = ("SELECT t.id, t.login, t.password, t.last_logged_in, t.email, t.created, t.access_level FROM `users` t;")
+
+        self.get_db().query(query)
+
+        for (user_id, login, password, last_logged_in, email, created, access_level) in self.get_db().fetch_all():
+            users.append({
+                'id': user_id,
+                'login': login,
+                'last_logged_in': last_logged_in,
+                'email': email,
+                'created': created,
+                'access_level': access_level,
+                'is_ldap': 'True'
+            })
+        
+        self.get_db().commit()
+        self.get_db().close()
+
+        return users
