@@ -50,6 +50,7 @@ def init_dev():
     my_app.secret_key = conf["FLASK"]["SECRET_KEY"]
     my_app.logger = logging.getLogger(conf["FLASK"]["LOGGER_NAME"])
     my_app.config['UPLOAD_FOLDER'] = 'downloads'
+    my_app.config['TEMPLATES_AUTO_RELOAD'] = True
 
     # Markdown init
     mark = Markdown(my_app)
@@ -71,6 +72,6 @@ if __name__ == "__main__":
     if debug:
         app.run('0.0.0.0', port=8081, debug=False)
     else:
-        serve(app, listen='0.0.0.0:8081', threads=1, url_scheme='http', connection_limit=50)
+        serve(app, listen='0.0.0.0:8081', threads=2, url_scheme='http', connection_limit=50)
         logger = logging.getLogger('waitress')
         logger.setLevel(logging.DEBUG)
