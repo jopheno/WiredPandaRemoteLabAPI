@@ -3,6 +3,7 @@ from __main__ import get_bs
 import logging
 import json
 import config
+import os
 from blueprints.api.bp import bp, bp_prefix, localhost
 
 
@@ -21,7 +22,7 @@ def index():
 @bp.route('/logo')
 def logo():
     try:
-        return current_app.send_static_file('logo.png')
+        return send_from_directory(directory=current_app.config['UPLOAD_FOLDER'], filename='logo.png')
     except FileNotFoundError:
         abort(404)
 
@@ -40,7 +41,7 @@ def method():
             abort(403)
 
     try:
-        return current_app.send_static_file(method.lower()+'.png')
+        return send_from_directory(directory=os.path.join(current_app.config['UPLOAD_FOLDER'], 'methods'), filename=method.lower()+'.png')
     except FileNotFoundError:
         abort(404)
 
